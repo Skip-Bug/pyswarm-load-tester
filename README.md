@@ -31,7 +31,7 @@ pyinstaller --onefile --name pyswarm pyswarm.py
 ```
 
 Готовый файл появится в `dist/pyswarm.exe`.
-
+Можно скачать [тут](https://github.com/Skip-Bug/PySwarm/releases/tag/v1.0-standalone)
 ### Запуск
 
 1. Положите `pyswarm.exe` в любую папку.
