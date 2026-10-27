@@ -34,7 +34,7 @@ jobs:
       - run: pip install pyinstaller
       - run: pip install .
       
-      - run: pyinstaller --onefile --name pyswarm --add-data "chart.min.js${{ matrix.sep }}." pyswarm.py
+      - run: pyinstaller --onefile --name ${{ matrix.artifact }} --add-data "chart.min.js${{ matrix.sep }}." pyswarm.py
       
       # Этот шаг сохраняет артефакты для истории (опционально)
       - uses: actions/upload-artifact@v4
