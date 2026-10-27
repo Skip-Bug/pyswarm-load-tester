@@ -1,6 +1,7 @@
 # 🐝 PySwarm — Universal Load Testing Tool
 
 Портативный, кроссплатформенный инструмент для нагрузочного тестирования REST API с удобным веб-интерфейсом и графиками в реальном времени.
+<img width="1249" height="589" alt="image" src="https://github.com/user-attachments/assets/0900bd09-a3d3-4519-8bc0-4d5145c343d7" />
 
 **Один файл. Три режима. Все ОС.**
 
