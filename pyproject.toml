@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyswarm"
+version = "1.0.0"
+description = "Universal load testing tool with web UI"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "Skip-Bug"}]
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+    "locust>=2.20",
+    "httpx>=0.27",
+    "psutil>=5.9",
+    "python-multipart>=0.0.9",
+    "pydantic>=2.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/Skip-Bug/PySwarm"
+
+[project.scripts]
+pyswarm = "pyswarm:main"
+
+[tool.setuptools]
+py-modules = ["pyswarm"]

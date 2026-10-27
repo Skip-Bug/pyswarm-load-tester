@@ -5,7 +5,7 @@ a = Analysis(
     ['pyswarm.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[('chart.min.js', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

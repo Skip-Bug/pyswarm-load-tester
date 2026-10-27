@@ -1,36 +1,22 @@
 services:
-  backend:
-    build: .
-    container_name: pyswarm_backend
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./tmp:/app/tmp
-    command: uvicorn main:app --host 0.0.0.0 --port 8000
-    environment:
-      - MAX_USERS_DEFAULT=50
-      - TEST_DURATION_DEFAULT=60
-    cpus: ${BACKEND_CPUS:-1.0}
-    mem_limit: ${BACKEND_MEM:-512m}
-
-  locust_master:
+  master:
     build: .
     container_name: pyswarm_master
+    command: ["--master"]
     ports:
+      - "8000:8000"
       - "8089:8089"
+      - "5557:5557"
     volumes:
       - ./tmp:/app/tmp
-    command: locust -f locust_file.py --master --web-host 0.0.0.0 --web-port 8089
-    cpus: ${MASTER_CPUS:-1.0}
-    mem_limit: ${MASTER_MEM:-512m}
+    environment:
+      - LOCUST_WORKERS=0
 
-  locust_worker:
+  worker:
     build: .
+    command: ["--worker", "--master-host", "master"]
+    depends_on: [master]
     volumes:
       - ./tmp:/app/tmp
-    command: locust -f locust_file.py --worker --master-host locust_master
-    depends_on:
-      - locust_master
-    restart: on-failure
-    cpus: ${WORKER_CPUS:-1.0}
-    mem_limit: ${WORKER_MEM:-1g}
+    deploy:
+      replicas: 2
