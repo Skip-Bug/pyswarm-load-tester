@@ -12,19 +12,26 @@ jobs:
         include:
           - os: windows-latest
             artifact: pyswarm-windows.exe
+            sep: ';'
           - os: ubuntu-latest
             artifact: pyswarm-linux
+            sep: ':'
           - os: macos-latest
             artifact: pyswarm-macos
+            sep: ':'
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+      
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          
       - run: pip install pyinstaller
       - run: pip install .
-      - run: pyinstaller --onefile --name pyswarm pyswarm.py
+      
+      - run: pyinstaller --onefile --name pyswarm --add-data "chart.min.js${{ matrix.sep }}." pyswarm.py
+      
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
