@@ -21,7 +21,6 @@ import logging
 import multiprocessing
 import os
 import random
-import socket
 import sys
 from contextlib import asynccontextmanager
 from typing import Any, Dict, List, Optional
@@ -49,6 +48,7 @@ logging.basicConfig(
 logger = logging.getLogger("pyswarm")
 
 # ---------- constants ----------
+APP_VERSION = "v4.0.0"
 LOCUST_HOST = "127.0.0.1"
 LOCUST_HTTP_PORT = 8089
 LOCUST_RPC_PORT = 5557
@@ -66,18 +66,19 @@ MASTER_HTTP_URL: Optional[str] = None
 IS_WORKER_MODE = False
 
 if getattr(sys, "frozen", False):
-    BASE_DIR = os.path.dirname(sys.executable)
+    BASE_DIR = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
 else:
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 TMP_DIR = os.path.join(BASE_DIR, "tmp")
 
 
 # ---------- embedded static ----------
-INDEX_HTML = """<!DOCTYPE html>
+INDEX_HTML = f"""<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>PySwarm Dashboard</title>
+    <title>PySwarm Dashboard {APP_VERSION}</title>
     <link rel="stylesheet" href="/style.css?v=3">
     <script src="/chart.js"></script>
 </head>
@@ -558,6 +559,11 @@ def _create_env():
                 for r in REQUESTS:
                     r.setdefault("headers", {})["Authorization"] = f"Bearer {token}"
 
+    @events.test_stop.add_listener
+    def on_test_stop(environment, **kwargs):
+        REQUESTS.clear()
+        logger.info("Locust: test stopped, REQUESTS cleared")
+
     return env
 
 
@@ -609,17 +615,16 @@ def _ensure_tmp():
     os.makedirs(TMP_DIR, exist_ok=True)
 
 
-def _wait_port(host: str, port: int, timeout: float = 10.0) -> bool:
-    import time
-
-    deadline = time.time() + timeout
-    while time.time() < deadline:
+async def _wait_port(host: str, port: int, timeout: float = 15.0) -> bool:
+    deadline = asyncio.get_event_loop().time() + timeout
+    while asyncio.get_event_loop().time() < deadline:
         try:
-            s = socket.create_connection((host, port), timeout=0.3)
-            s.close()
+            reader, writer = await asyncio.open_connection(host, port)
+            writer.close()
+            await writer.wait_closed()
             return True
         except OSError:
-            time.sleep(0.1)
+            await asyncio.sleep(0.1)
     return False
 
 
@@ -634,7 +639,7 @@ async def lifespan(app: FastAPI):
     master_proc = multiprocessing.Process(target=run_master_process, daemon=True)
     master_proc.start()
 
-    if not _wait_port(LOCUST_HOST, LOCUST_RPC_PORT, timeout=15.0):
+    if not await _wait_port(LOCUST_HOST, LOCUST_RPC_PORT, timeout=15.0):
         logger.error("Locust master RPC did not start")
 
     # 2. start local workers (0 in --master mode)
@@ -700,18 +705,27 @@ async def lifespan(app: FastAPI):
     yield
 
     watchdog_task.cancel()
+
+    logger.info("Shutting down Locust processes...")
     for p in worker_procs:
         if p.is_alive():
             p.terminate()
+            p.join(timeout=2.0)
+            if p.is_alive():
+                p.kill()
+
     if master_proc.is_alive():
         master_proc.terminate()
+        master_proc.join(timeout=2.0)
+        if master_proc.is_alive():
+            master_proc.kill()
 
 
 app = FastAPI(title="PySwarm", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
